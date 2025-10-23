@@ -1,36 +1,27 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI-Prioritized To-Do App
 
-## Getting Started
+> "I ship, therefore I am."
 
-First, run the development server:
+This is a test project submission built to demonstrate a "ship fast, iterate faster" mentality.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+It's not a standard to-do app; it's an **AI-Prioritized To-Do App**.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Instead of just adding tasks, a user adds a task, and an OpenAI-powered Next.js Server Action automatically analyzes and categorizes it by "Impact" and "Effort." This solves the real-world user problem of "What should I work on next?"
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The goal was not pixel-perfection, but to demonstrate shipping valuable software quickly by pragmatically leveraging AI tools.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+### Core Deliverables
 
-To learn more about Next.js, take a look at the following resources:
+- **Live URL:** [https://ai-prioritized-to-do-app.vercel.app](https://ai-prioritized-to-do-app.vercel.app)
+- **Planning Doc:** See `PLAN.md`
+- **AI Prompts:** See `PROMPTS.md`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Tech Stack & Tools
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Framework:** Next.js (App Router)
+- **Database & Auth:** Supabase
+- **Styling:** TailwindCSS
+- **Deployment:** Vercel
+- **AI/Productivity:** Cursor (Code Gen), v0.dev (UI Scaffolding), OpenAI (Core Feature)
