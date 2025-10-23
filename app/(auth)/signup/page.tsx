@@ -36,6 +36,9 @@ export default function SignupPage() {
       const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
       if (error) {
@@ -45,7 +48,7 @@ export default function SignupPage() {
           type: "success",
           title: "Account created successfully!",
           message:
-            "Please check your email to verify your account before signing in.",
+            "Please check your email to verify your account. You'll be automatically signed in after confirmation.",
           duration: 6000,
         });
         router.push("/login?message=Check your email for verification link");
