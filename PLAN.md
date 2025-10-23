@@ -238,18 +238,18 @@ Create setup guide for:
 
 ## Testing Checklist
 
-- [ ] User can sign up and log in
-- [ ] Unauthenticated users redirected from dashboard
-- [ ] Task creation calls OpenAI and saves categorization
-- [ ] Tasks display in both list and matrix views
-- [ ] Users can toggle views (state persists)
-- [ ] Users can edit task title and categories
-- [ ] Users can complete/uncomplete tasks
-- [ ] Users can delete tasks
-- [ ] Completed tasks styled differently
-- [ ] RLS prevents cross-user data access
-- [ ] Error handling works (offline, API failures)
-- [ ] Mobile responsive
+- [x] User can sign up and log in
+- [x] Unauthenticated users redirected from dashboard
+- [x] Task creation calls OpenAI and saves categorization
+- [x] Tasks display in both list and matrix views
+- [x] Users can toggle views (state persists)
+- [x] Users can edit task title and categories
+- [x] Users can complete/uncomplete tasks
+- [x] Users can delete tasks
+- [x] Completed tasks styled differently
+- [x] RLS prevents cross-user data access
+- [x] Error handling works (offline, API failures)
+- [x] Mobile responsive
 
 ### To-dos
 

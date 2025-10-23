@@ -92,6 +92,7 @@ export const DATABASE_INDEXES = {
 };
 
 export function getOptimizedTaskQuery(filters: {
+  user_id: string;
   status?: string;
   priority?: string;
   limit?: number;
