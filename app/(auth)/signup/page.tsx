@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { showToast } from "@/components/ui/toast";
 
 export default function SignupPage() {
   const [email, setEmail] = useState("");
@@ -40,6 +41,13 @@ export default function SignupPage() {
       if (error) {
         setError(error.message);
       } else {
+        showToast({
+          type: "success",
+          title: "Account created successfully!",
+          message:
+            "Please check your email to verify your account before signing in.",
+          duration: 6000,
+        });
         router.push("/login?message=Check your email for verification link");
       }
     } catch (err) {
