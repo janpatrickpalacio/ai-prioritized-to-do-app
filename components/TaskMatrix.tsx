@@ -204,7 +204,7 @@ export default function TaskMatrix({ refreshTrigger }: TaskMatrixProps) {
 
   if (loading) {
     return (
-      <Card className="p-12 text-center border-border/50 bg-card/50 backdrop-blur-sm">
+      <Card className="p-12 text-center border-border/50 bg-card/50 backdrop-blur-sm animate-in fade-in duration-300">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
         <p className="text-muted-foreground mt-4">Loading matrix...</p>
       </Card>

@@ -155,7 +155,7 @@ export default function TaskCard({ task, onUpdate }: TaskCardProps) {
 
   return (
     <Card
-      className={`flex items-center gap-4 p-5 ${ANIMATIONS.taskAdd} ${
+      className={`flex items-center gap-4 p-5 animate-in slide-in-from-bottom-2 zoom-in-95 duration-400 ${
         TRANSITIONS.standard
       } border-border/50 bg-card/60 backdrop-blur-sm hover:bg-card/80 hover:shadow-md hover:border-primary/30 group cursor-pointer ${
         loading ? "opacity-60 pointer-events-none" : ""

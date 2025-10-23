@@ -47,13 +47,13 @@ export default function DashboardClient({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30 animate-in fade-in duration-300">
       {/* Toast Container */}
       <ToastContainer />
 
       {/* Header */}
       <header
-        className={`border-b border-border/50 bg-card/50 backdrop-blur-sm ${ANIMATIONS.fadeIn}`}
+        className={`border-b border-border/50 bg-card/50 backdrop-blur-sm animate-in slide-in-from-top-4 duration-300`}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 py-4 sm:py-5">
           <div className="min-w-0 flex-1">
@@ -103,7 +103,7 @@ export default function DashboardClient({
 
       {/* Main Content */}
       <main
-        className={`mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-10 ${ANIMATIONS.fadeIn}`}
+        className={`mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-10 animate-in fade-in slide-in-from-bottom-4 duration-300 delay-150`}
       >
         {/* Add Task Form */}
         <div className="mb-6 sm:mb-10">

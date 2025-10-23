@@ -15,8 +15,12 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("system");
   const [resolvedTheme, setResolvedTheme] = useState<"light" | "dark">("light");
+  const [mounted, setMounted] = useState(false);
 
+  // Prevent hydration mismatch
   useEffect(() => {
+    setMounted(true);
+
     // Load theme from localStorage
     const savedTheme = localStorage.getItem("theme") as Theme;
     if (savedTheme && ["light", "dark", "system"].includes(savedTheme)) {
@@ -25,6 +29,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (!mounted) return;
+
     const updateResolvedTheme = () => {
       if (theme === "system") {
         const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
@@ -49,19 +55,44 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [theme]);
+  }, [theme, mounted]);
 
   useEffect(() => {
-    // Apply theme to document
+    if (!mounted) return;
+
+    // Apply theme to document with a slight delay to prevent flash
     const root = document.documentElement;
-    root.classList.remove("light", "dark");
-    root.classList.add(resolvedTheme);
-  }, [resolvedTheme]);
+
+    // Use requestAnimationFrame to ensure smooth transition
+    requestAnimationFrame(() => {
+      root.classList.remove("light", "dark");
+      root.classList.add(resolvedTheme);
+    });
+  }, [resolvedTheme, mounted]);
 
   const handleSetTheme = (newTheme: Theme) => {
     setTheme(newTheme);
-    localStorage.setItem("theme", newTheme);
+    if (mounted) {
+      localStorage.setItem("theme", newTheme);
+    }
   };
+
+  // Return a placeholder during SSR to prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <ThemeContext.Provider
+        value={{
+          theme: "system",
+          setTheme: handleSetTheme,
+          resolvedTheme: "light",
+        }}
+      >
+        <div className="min-h-screen bg-background text-foreground opacity-0 animate-in fade-in duration-300">
+          {children}
+        </div>
+      </ThemeContext.Provider>
+    );
+  }
 
   return (
     <ThemeContext.Provider

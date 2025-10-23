@@ -119,4 +119,25 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Prevent flash of unstyled content during theme changes */
+  html {
+    color-scheme: light;
+  }
+  
+  .dark html {
+    color-scheme: dark;
+  }
+  
+  /* Ensure smooth transitions for theme changes */
+  * {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+  
+  /* Prevent black screen during animations */
+  .animate-in {
+    animation-fill-mode: both;
+  }
 }
