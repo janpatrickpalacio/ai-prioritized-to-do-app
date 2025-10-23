@@ -18,9 +18,6 @@ interface TaskInputProps {
 export default function TaskInput({ onTaskCreated }: TaskInputProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<
-    "low" | "medium" | "high" | "urgent"
-  >("medium");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -39,7 +36,7 @@ export default function TaskInput({ onTaskCreated }: TaskInputProps) {
       const input: CreateTaskInput = {
         title: title.trim(),
         description: description.trim() || undefined,
-        priority,
+        priority: "medium", // Default priority - AI will override with calculated priority
       };
 
       const result = await createTask(input);
@@ -47,7 +44,6 @@ export default function TaskInput({ onTaskCreated }: TaskInputProps) {
       if (result.success) {
         setTitle("");
         setDescription("");
-        setPriority("medium");
         showToast({
           type: "success",
           title: "Task created successfully",
@@ -103,38 +99,26 @@ export default function TaskInput({ onTaskCreated }: TaskInputProps) {
           />
         </div>
 
-        <div className="flex items-end gap-4">
-          <div className="flex-1">
-            <label className="text-sm font-medium text-foreground mb-2 block">
-              Priority
-            </label>
-            <select
-              value={priority}
-              onChange={(e) => setPriority(e.target.value as any)}
-              className="w-full px-3 py-2 border border-border/50 rounded-md bg-background/50 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-colors"
-              disabled={loading}
-            >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            <p>
+              🤖 AI will automatically prioritize your task based on impact and
+              effort
+            </p>
           </div>
 
-          <div className="flex items-end">
-            <Button
-              type="submit"
-              disabled={loading || !title.trim()}
-              className="px-6 bg-primary hover:bg-primary/90 text-primary-foreground gap-2 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
-            >
-              {loading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Plus className="h-4 w-4" />
-              )}
-              {loading ? "Creating..." : "Add Task"}
-            </Button>
-          </div>
+          <Button
+            type="submit"
+            disabled={loading || !title.trim()}
+            className="px-6 bg-primary hover:bg-primary/90 text-primary-foreground gap-2 transition-all duration-200 shadow-md hover:shadow-lg disabled:opacity-50"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            {loading ? "Creating..." : "Add Task"}
+          </Button>
         </div>
 
         {error && (

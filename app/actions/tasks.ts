@@ -2,6 +2,10 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { categorizeTask } from "@/lib/openai";
+import {
+  calculatePriorityScore,
+  scoreToPriorityLevel,
+} from "@/lib/priorityScoring";
 import { CreateTaskInput, UpdateTaskInput, Task } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import {
@@ -62,22 +66,32 @@ export async function createTask(
       cacheOpenAIResponse(sanitizedInput.title, categorization);
     }
 
-    // Insert task with AI categorization
+    // Create a temporary task object to calculate priority score
+    const tempTask = {
+      title: sanitizedInput.title,
+      description: sanitizedInput.description,
+      priority: sanitizedInput.priority,
+      due_date: input.due_date,
+      ai_reasoning: `AI Analysis: Impact=${categorization.impact}, Effort=${categorization.effort}`,
+    };
+
+    // Calculate sophisticated priority score
+    const priorityResult = calculatePriorityScore(tempTask);
+
+    // Convert AI score to priority level
+    const aiPriorityLevel = scoreToPriorityLevel(priorityResult.score);
+
+    // Insert task with AI categorization and sophisticated scoring
     const { data: task, error } = await supabase
       .from("tasks")
       .insert({
         title: sanitizedInput.title,
         description: sanitizedInput.description,
-        priority: sanitizedInput.priority,
+        priority: aiPriorityLevel, // Use AI-determined priority instead of user input
         due_date: input.due_date,
         user_id: user.id,
-        ai_priority_score:
-          categorization.impact === "High"
-            ? 4
-            : categorization.impact === "Medium"
-            ? 3
-            : 2,
-        ai_reasoning: `AI Analysis: Impact=${categorization.impact}, Effort=${categorization.effort}`,
+        ai_priority_score: priorityResult.score,
+        ai_reasoning: priorityResult.reasoning,
       })
       .select()
       .single();

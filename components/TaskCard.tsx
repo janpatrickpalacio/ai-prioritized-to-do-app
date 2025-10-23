@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit2, Trash2, Save, X } from "lucide-react";
+import { Edit2, Trash2, Save, X, Loader2 } from "lucide-react";
 import { Task } from "@/lib/types";
 import { updateTask, deleteTask, toggleComplete } from "@/app/actions/tasks";
 import { ANIMATIONS, TRANSITIONS } from "@/lib/animations";
@@ -14,7 +14,7 @@ import { ARIA_LABELS, announceToScreenReader } from "@/lib/accessibility";
 
 interface TaskCardProps {
   task: Task;
-  onUpdate?: () => void;
+  onUpdate?: (updatedTask?: Task) => void;
 }
 
 export default function TaskCard({ task, onUpdate }: TaskCardProps) {
@@ -26,13 +26,19 @@ export default function TaskCard({ task, onUpdate }: TaskCardProps) {
   const [editPriority, setEditPriority] = useState(task.priority);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [localTask, setLocalTask] = useState(task);
 
   const handleToggleComplete = async () => {
     setLoading(true);
+    setError("");
+
     try {
       const result = await toggleComplete(task.id);
       if (result.success) {
-        const action = task.status === "completed" ? "incomplete" : "completed";
+        // Only update state after server confirmation
+        const newStatus = task.status === "completed" ? "todo" : "completed";
+        const action = newStatus === "completed" ? "completed" : "incomplete";
+
         announceToScreenReader(`Task "${task.title}" marked as ${action}`);
         onUpdate?.();
       } else {
@@ -149,18 +155,29 @@ export default function TaskCard({ task, onUpdate }: TaskCardProps) {
 
   return (
     <Card
-      className={`flex items-center gap-4 p-5 ${ANIMATIONS.taskAdd} ${TRANSITIONS.standard} border-border/50 bg-card/60 backdrop-blur-sm hover:bg-card/80 hover:shadow-md hover:border-primary/30 group cursor-pointer`}
+      className={`flex items-center gap-4 p-5 ${ANIMATIONS.taskAdd} ${
+        TRANSITIONS.standard
+      } border-border/50 bg-card/60 backdrop-blur-sm hover:bg-card/80 hover:shadow-md hover:border-primary/30 group cursor-pointer ${
+        loading ? "opacity-60 pointer-events-none" : ""
+      }`}
       role="listitem"
       aria-label={`Task: ${task.title}`}
     >
-      <div className="flex-shrink-0 transition-transform duration-200 group-hover:scale-110">
+      <div className="flex-shrink-0 transition-transform duration-200 group-hover:scale-110 relative">
+        {loading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          </div>
+        )}
         <Checkbox
-          checked={task.status === "completed"}
+          checked={localTask.status === "completed"}
           onCheckedChange={handleToggleComplete}
           disabled={loading}
-          className={`h-5 w-5 ${TRANSITIONS.standard}`}
+          className={`h-5 w-5 ${TRANSITIONS.standard} ${
+            loading ? "opacity-0" : ""
+          }`}
           aria-label={
-            task.status === "completed"
+            localTask.status === "completed"
               ? ARIA_LABELS.incompleteTask
               : ARIA_LABELS.completeTask
           }
@@ -199,21 +216,21 @@ export default function TaskCard({ task, onUpdate }: TaskCardProps) {
           <div>
             <p
               className={`text-foreground transition-all duration-200 ${
-                task.status === "completed"
+                localTask.status === "completed"
                   ? "line-through text-muted-foreground"
                   : "font-medium"
               }`}
             >
-              {task.title}
+              {localTask.title}
             </p>
-            {task.description && (
+            {localTask.description && (
               <p className="text-sm text-muted-foreground mt-1">
-                {task.description}
+                {localTask.description}
               </p>
             )}
-            {task.ai_reasoning && (
+            {localTask.ai_reasoning && (
               <p className="text-xs text-muted-foreground mt-1 italic">
-                {task.ai_reasoning}
+                {localTask.ai_reasoning}
               </p>
             )}
           </div>

@@ -13,7 +13,23 @@ export async function categorizeTask(
   taskTitle: string
 ): Promise<TaskCategorization> {
   try {
-    const prompt = `Analyze this task and categorize it. Return JSON: {"impact": "High|Medium|Low", "effort": "High|Medium|Low"}. Impact = business value, Effort = time/complexity.
+    const prompt = `Analyze this task and categorize it based on business impact and effort required. Return JSON: {"impact": "High|Medium|Low", "effort": "High|Medium|Low"}.
+
+IMPACT refers to business value/urgency:
+- High: Critical to business goals, has immediate consequences, or generates significant value
+- Medium: Important but not critical, contributes to goals but with less urgency
+- Low: Nice to have, minimal business impact, can be delayed
+
+EFFORT refers to time/complexity:
+- High: Takes days/weeks, requires significant resources, complex implementation
+- Medium: Takes hours/days, moderate complexity, requires some planning
+- Low: Takes minutes/hours, simple, straightforward to implement
+
+Examples:
+- "Fix critical production bug" → {"impact": "High", "effort": "Low"}
+- "Build new reporting dashboard" → {"impact": "Medium", "effort": "High"}
+- "Update button color" → {"impact": "Low", "effort": "Low"}
+- "Implement user authentication" → {"impact": "High", "effort": "High"}
 
 Task: "${taskTitle}"
 
@@ -23,12 +39,17 @@ Return only valid JSON with no additional text.`;
       model: "gpt-3.5-turbo",
       messages: [
         {
+          role: "system",
+          content:
+            "You are an expert project manager and business analyst specializing in task prioritization. Analyze tasks based on their business impact and implementation effort to provide accurate categorization.",
+        },
+        {
           role: "user",
           content: prompt,
         },
       ],
-      temperature: 0.3,
-      max_tokens: 150,
+      temperature: 0.3, // Slightly higher temperature for more creativity with 3.5
+      max_tokens: 200,
     });
 
     const response = completion.choices[0]?.message?.content?.trim();
@@ -38,7 +59,12 @@ Return only valid JSON with no additional text.`;
     }
 
     // Parse JSON response
-    const parsed = JSON.parse(response);
+    let parsed;
+    try {
+      parsed = JSON.parse(response);
+    } catch (parseError) {
+      throw new Error("Failed to parse OpenAI response as JSON");
+    }
 
     // Validate the response structure
     if (
@@ -52,6 +78,7 @@ Return only valid JSON with no additional text.`;
         effort: parsed.effort as "High" | "Medium" | "Low",
       };
     } else {
+      console.error("Invalid response structure:", parsed);
       throw new Error("Invalid response format from OpenAI");
     }
   } catch (error) {
@@ -69,7 +96,17 @@ export async function categorizeTasks(
   taskTitles: string[]
 ): Promise<TaskCategorization[]> {
   try {
-    const prompt = `Analyze these tasks and categorize each one. Return JSON array: [{"impact": "High|Medium|Low", "effort": "High|Medium|Low"}]. Impact = business value, Effort = time/complexity.
+    const prompt = `Analyze these tasks and categorize each one based on business impact and effort required. Return JSON array: [{"impact": "High|Medium|Low", "effort": "High|Medium|Low"}].
+
+IMPACT refers to business value/urgency:
+- High: Critical to business goals, has immediate consequences, or generates significant value
+- Medium: Important but not critical, contributes to goals but with less urgency
+- Low: Nice to have, minimal business impact, can be delayed
+
+EFFORT refers to time/complexity:
+- High: Takes days/weeks, requires significant resources, complex implementation
+- Medium: Takes hours/days, moderate complexity, requires some planning
+- Low: Takes minutes/hours, simple, straightforward to implement
 
 Tasks:
 ${taskTitles.map((title, index) => `${index + 1}. "${title}"`).join("\n")}
@@ -80,12 +117,17 @@ Return only valid JSON array with no additional text.`;
       model: "gpt-3.5-turbo",
       messages: [
         {
+          role: "system",
+          content:
+            "You are an expert project manager and business analyst specializing in task prioritization. Analyze tasks based on their business impact and implementation effort to provide accurate categorization.",
+        },
+        {
           role: "user",
           content: prompt,
         },
       ],
-      temperature: 0.3,
-      max_tokens: 500,
+      temperature: 0.3, // Slightly higher temperature for more creativity with 3.5
+      max_tokens: 600,
     });
 
     const response = completion.choices[0]?.message?.content?.trim();

@@ -3,8 +3,9 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Task } from "@/lib/types";
-import { getTasks, updateTask } from "@/app/actions/tasks";
+import { getTasks, updateTask, toggleComplete } from "@/app/actions/tasks";
 import TaskCard from "./TaskCard";
 import {
   TrendingUp,
@@ -15,6 +16,7 @@ import {
   Lightbulb,
   Calendar,
   X,
+  Loader2,
 } from "lucide-react";
 
 interface TaskMatrixProps {
@@ -31,6 +33,7 @@ export default function TaskMatrix({ refreshTrigger }: TaskMatrixProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null);
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -56,25 +59,93 @@ export default function TaskMatrix({ refreshTrigger }: TaskMatrixProps) {
     fetchTasks();
   };
 
+  const handleToggleComplete = async (taskId: string) => {
+    setUpdatingTaskId(taskId); // Disable this specific task during update
+
+    try {
+      await toggleComplete(taskId);
+      // Only refresh after server confirmation
+      fetchTasks();
+    } catch (error) {
+      console.error("Failed to toggle task completion:", error);
+    } finally {
+      setUpdatingTaskId(null); // Re-enable the task
+    }
+  };
+
   // Create matrix cells
   const createMatrixCells = (): MatrixCell[] => {
     const cells: MatrixCell[] = [];
+    // Define the order to match the display layout
+    // Display order: High/Medium/Low impact (rows) × Low/Medium/High effort (columns)
     const impacts: ("High" | "Medium" | "Low")[] = ["High", "Medium", "Low"];
-    const efforts: ("High" | "Medium" | "Low")[] = ["High", "Medium", "Low"];
+    const efforts: ("Low" | "Medium" | "High")[] = ["Low", "Medium", "High"];
 
     impacts.forEach((impact) => {
       efforts.forEach((effort) => {
         const cellTasks = tasks.filter((task) => {
-          // Map AI priority score to impact/effort
-          const aiScore = task.ai_priority_score || 3;
-          const taskImpact =
-            aiScore >= 4 ? "High" : aiScore >= 3 ? "Medium" : "Low";
-          const taskEffort =
-            task.priority === "urgent"
-              ? "High"
-              : task.priority === "high"
-              ? "Medium"
-              : "Low";
+          // Extract impact and effort from AI reasoning if available
+          let taskImpact: "High" | "Medium" | "Low" = "Medium";
+          let taskEffort: "High" | "Medium" | "Low" = "Medium";
+          let foundImpact = false;
+          let foundEffort = false;
+
+          // Try to extract from AI reasoning first
+          if (task.ai_reasoning) {
+            // The new format uses colons: "Impact: Medium, Effort: Medium"
+            const impactMatch = task.ai_reasoning.match(
+              /Impact:\s*(High|Medium|Low)/i
+            );
+            const effortMatch = task.ai_reasoning.match(
+              /Effort:\s*(High|Medium|Low)/i
+            );
+
+            // Also try the old format for backward compatibility: "Impact=Medium, Effort=Medium"
+            const oldImpactMatch = task.ai_reasoning.match(
+              /Impact=(High|Medium|Low)/
+            );
+            const oldEffortMatch = task.ai_reasoning.match(
+              /Effort=(High|Medium|Low)/
+            );
+
+            if (impactMatch) {
+              taskImpact = impactMatch[1] as "High" | "Medium" | "Low";
+              foundImpact = true;
+            } else if (oldImpactMatch) {
+              taskImpact = oldImpactMatch[1] as "High" | "Medium" | "Low";
+              foundImpact = true;
+            }
+
+            if (effortMatch) {
+              taskEffort = effortMatch[1] as "High" | "Medium" | "Low";
+              foundEffort = true;
+            } else if (oldEffortMatch) {
+              taskEffort = oldEffortMatch[1] as "High" | "Medium" | "Low";
+              foundEffort = true;
+            }
+          }
+
+          // Fallback to AI priority score for impact if not found in reasoning
+          if (!foundImpact) {
+            const aiScore = task.ai_priority_score || 3;
+            taskImpact =
+              aiScore >= 4 ? "High" : aiScore >= 3 ? "Medium" : "Low";
+          }
+
+          // Fallback to user priority for effort if not found in reasoning
+          if (!foundEffort) {
+            // This mapping is more accurate - user priority often indicates urgency, not effort
+            // So we'll use a more nuanced approach
+            if (task.priority === "urgent") {
+              taskEffort = "Medium"; // Urgent tasks are often not necessarily high effort
+            } else if (task.priority === "high") {
+              taskEffort = "Medium";
+            } else if (task.priority === "medium") {
+              taskEffort = "Low";
+            } else {
+              taskEffort = "Low";
+            }
+          }
 
           return taskImpact === impact && taskEffort === effort;
         });
@@ -199,15 +270,25 @@ export default function TaskMatrix({ refreshTrigger }: TaskMatrixProps) {
                 {cell.tasks.map((task) => (
                   <div
                     key={task.id}
-                    className="bg-white/60 dark:bg-black/20 backdrop-blur-sm rounded-md p-2 border border-white/20 dark:border-white/10 shadow-sm"
+                    className={`bg-white/60 dark:bg-black/20 backdrop-blur-sm rounded-md p-2 border border-white/20 dark:border-white/10 shadow-sm ${
+                      updatingTaskId === task.id
+                        ? "opacity-60 pointer-events-none"
+                        : ""
+                    }`}
                   >
                     <div className="flex items-start gap-2">
-                      <div className="shrink-0 mt-1">
-                        <div
-                          className={`w-2 h-2 rounded-full ${
-                            task.status === "completed"
-                              ? "bg-green-500"
-                              : "bg-blue-500"
+                      <div className="shrink-0 mt-1 relative">
+                        {updatingTaskId === task.id && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          </div>
+                        )}
+                        <Checkbox
+                          checked={task.status === "completed"}
+                          onCheckedChange={() => handleToggleComplete(task.id)}
+                          disabled={updatingTaskId === task.id}
+                          className={`h-4 w-4 ${
+                            updatingTaskId === task.id ? "opacity-0" : ""
                           }`}
                         />
                       </div>
@@ -323,15 +404,27 @@ export default function TaskMatrix({ refreshTrigger }: TaskMatrixProps) {
                     {cell.tasks.map((task) => (
                       <div
                         key={task.id}
-                        className="bg-white/60 dark:bg-black/20 backdrop-blur-sm rounded-md p-1.5 sm:p-2 border border-white/20 dark:border-white/10 shadow-sm hover:bg-white/80 dark:hover:bg-black/30 transition-colors"
+                        className={`bg-white/60 dark:bg-black/20 backdrop-blur-sm rounded-md p-1.5 sm:p-2 border border-white/20 dark:border-white/10 shadow-sm hover:bg-white/80 dark:hover:bg-black/30 transition-colors ${
+                          updatingTaskId === task.id
+                            ? "opacity-60 pointer-events-none"
+                            : ""
+                        }`}
                       >
                         <div className="flex items-start gap-1.5 sm:gap-2">
-                          <div className="shrink-0 mt-0.5 sm:mt-1">
-                            <div
-                              className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
-                                task.status === "completed"
-                                  ? "bg-green-500"
-                                  : "bg-blue-500"
+                          <div className="shrink-0 mt-0.5 sm:mt-1 relative">
+                            {updatingTaskId === task.id && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-primary" />
+                              </div>
+                            )}
+                            <Checkbox
+                              checked={task.status === "completed"}
+                              onCheckedChange={() =>
+                                handleToggleComplete(task.id)
+                              }
+                              disabled={updatingTaskId === task.id}
+                              className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                                updatingTaskId === task.id ? "opacity-0" : ""
                               }`}
                             />
                           </div>
@@ -417,15 +510,27 @@ export default function TaskMatrix({ refreshTrigger }: TaskMatrixProps) {
                     {cell.tasks.map((task) => (
                       <div
                         key={task.id}
-                        className="bg-white/60 dark:bg-black/20 backdrop-blur-sm rounded-md p-1.5 sm:p-2 border border-white/20 dark:border-white/10 shadow-sm hover:bg-white/80 dark:hover:bg-black/30 transition-colors"
+                        className={`bg-white/60 dark:bg-black/20 backdrop-blur-sm rounded-md p-1.5 sm:p-2 border border-white/20 dark:border-white/10 shadow-sm hover:bg-white/80 dark:hover:bg-black/30 transition-colors ${
+                          updatingTaskId === task.id
+                            ? "opacity-60 pointer-events-none"
+                            : ""
+                        }`}
                       >
                         <div className="flex items-start gap-1.5 sm:gap-2">
-                          <div className="shrink-0 mt-0.5 sm:mt-1">
-                            <div
-                              className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
-                                task.status === "completed"
-                                  ? "bg-green-500"
-                                  : "bg-blue-500"
+                          <div className="shrink-0 mt-0.5 sm:mt-1 relative">
+                            {updatingTaskId === task.id && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-primary" />
+                              </div>
+                            )}
+                            <Checkbox
+                              checked={task.status === "completed"}
+                              onCheckedChange={() =>
+                                handleToggleComplete(task.id)
+                              }
+                              disabled={updatingTaskId === task.id}
+                              className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                                updatingTaskId === task.id ? "opacity-0" : ""
                               }`}
                             />
                           </div>
@@ -511,15 +616,27 @@ export default function TaskMatrix({ refreshTrigger }: TaskMatrixProps) {
                     {cell.tasks.map((task) => (
                       <div
                         key={task.id}
-                        className="bg-white/60 dark:bg-black/20 backdrop-blur-sm rounded-md p-1.5 sm:p-2 border border-white/20 dark:border-white/10 shadow-sm hover:bg-white/80 dark:hover:bg-black/30 transition-colors"
+                        className={`bg-white/60 dark:bg-black/20 backdrop-blur-sm rounded-md p-1.5 sm:p-2 border border-white/20 dark:border-white/10 shadow-sm hover:bg-white/80 dark:hover:bg-black/30 transition-colors ${
+                          updatingTaskId === task.id
+                            ? "opacity-60 pointer-events-none"
+                            : ""
+                        }`}
                       >
                         <div className="flex items-start gap-1.5 sm:gap-2">
-                          <div className="shrink-0 mt-0.5 sm:mt-1">
-                            <div
-                              className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
-                                task.status === "completed"
-                                  ? "bg-green-500"
-                                  : "bg-blue-500"
+                          <div className="shrink-0 mt-0.5 sm:mt-1 relative">
+                            {updatingTaskId === task.id && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin text-primary" />
+                              </div>
+                            )}
+                            <Checkbox
+                              checked={task.status === "completed"}
+                              onCheckedChange={() =>
+                                handleToggleComplete(task.id)
+                              }
+                              disabled={updatingTaskId === task.id}
+                              className={`h-3 w-3 sm:h-4 sm:w-4 ${
+                                updatingTaskId === task.id ? "opacity-0" : ""
                               }`}
                             />
                           </div>
